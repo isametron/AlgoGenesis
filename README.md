@@ -45,7 +45,7 @@ The harness measures it the same way whatever its source. See [INTERFACE.md](INT
 | `algogenesis/fitness.py` | `training_fitness(code)`: the frozen training suite for the LLM loop |
 | `algogenesis/bbob.py` | The 24 BBOB functions adapted to the harness (box [-5, 5]) |
 | `algogenesis/benchmarks.py` | Classic shifted Sphere and Rastrigin; `make_problem` for every suite |
-| `algogenesis/baselines/` | PSO and real-coded GA (DE, CMA-ES and BIPOP-CMA-ES coming next) |
+| `algogenesis/baselines/` | PSO, real-coded GA, DE, CMA-ES, BIPOP-CMA-ES and random search |
 | `algogenesis/report.py` | Results tables (Markdown and LaTeX), significance tests, convergence plots |
 | `scripts/compare.py` | Full comparison of baselines and LLM-found algorithms, written to `results/comparison/` |
 | `scripts/run_baselines.py` | Quick baseline-only numbers (Phase 1) |
@@ -83,6 +83,12 @@ Run the comparison: the baselines plus any LLM-found algorithms, each a `.py` fi
 .venv/Scripts/python scripts/compare.py --candidates data/found/*.py --runs 30
 ```
 
+The paper's test phase runs everything on all 24 BBOB functions, 5-D, 15 held-out instances:
+
+```bash
+.venv/Scripts/python scripts/compare.py --suite bbob --candidates data/found/*.py
+```
+
 ## Status
 
 - [x] Harness, classic benchmarks, PSO and GA baselines, comparison pipeline
@@ -91,4 +97,5 @@ Run the comparison: the baselines plus any LLM-found algorithms, each a `.py` fi
 - [x] LLM client, (1+1) loop and no-feedback control, run on GitHub Actions (Pratyush)
 - [x] Prompts and run monitoring (Om)
 - [ ] Run analysis (Om)
-- [ ] DE, CMA-ES and BIPOP-CMA-ES baselines; statistics upgrade; BBOB test phase (Siddhant)
+- [x] DE, CMA-ES, BIPOP-CMA-ES and random-search baselines (Siddhant)
+- [ ] Statistics upgrade; BBOB test phase (Siddhant)

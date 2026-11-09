@@ -1,8 +1,14 @@
 """Full comparison: baselines and LLM-found algorithms on every benchmark.
 
-    python scripts/compare.py                                   # PSO vs GA
-    python scripts/compare.py --candidates found/*.py           # add LLM-found algorithms
+    python scripts/compare.py                                   # all baselines, classic suite
+    python scripts/compare.py --candidates data/found/*.py      # add LLM-found algorithms
     python scripts/compare.py --dims 10 30 --runs 30 --reference GA
+    python scripts/compare.py --suite bbob --candidates data/found/*.py   # the paper's test phase
+
+--suite sets the defaults, and any flag given explicitly overrides them:
+    classic   Sphere and Rastrigin, 10-D and 30-D, 30 runs, budget 1000 x dim
+    bbob      all 24 BBOB functions, 5-D, 15 runs (one per test instance), budget 2000 x dim
+Runs use the held-out test instances unless --instances train is given.
 
 Each candidate is a .py file defining optimize(func, dim, bounds, budget); its
 file name is used as the algorithm name. Candidates run in a separate process
@@ -26,10 +32,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from algogenesis.baselines import BASELINES  # noqa: E402
 from algogenesis.bbob import BBOB_FUNCTIONS  # noqa: E402
 from algogenesis.benchmarks import BENCHMARKS  # noqa: E402
-from algogenesis.harness import evaluate_code, run_suite  # noqa: E402
+from algogenesis.harness import TEST_INSTANCES, TRAIN_INSTANCES, evaluate_code, run_suite  # noqa: E402
 from algogenesis.report import (  # noqa: E402
     comparison_rows, latex_error_table, markdown_tables, plot_convergence, problems,
 )
+
+
+SUITES = {
+    "classic": dict(functions=list(BENCHMARKS), dims=[10, 30], runs=30, budget_per_dim=1000),
+    "bbob": dict(functions=list(BBOB_FUNCTIONS), dims=[5], runs=len(TEST_INSTANCES), budget_per_dim=2000),
+}
+INSTANCES = {"test": TEST_INSTANCES, "train": TRAIN_INSTANCES}
 
 
 def main():
@@ -37,19 +50,23 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--candidates", nargs="*", type=Path, default=[], help="LLM-found algorithm files")
     parser.add_argument("--baselines", nargs="*", default=list(BASELINES), choices=list(BASELINES))
-    parser.add_argument("--functions", nargs="+", default=list(BENCHMARKS),
-                        choices=list(BENCHMARKS) + list(BBOB_FUNCTIONS))
-    parser.add_argument("--dims", nargs="+", type=int, default=[10, 30])
-    parser.add_argument("--runs", type=int, default=30)
-    parser.add_argument("--budget-per-dim", type=int, default=1000)
+    parser.add_argument("--suite", choices=list(SUITES), default="classic", help="sets the four defaults below")
+    parser.add_argument("--functions", nargs="+", choices=list(BENCHMARKS) + list(BBOB_FUNCTIONS))
+    parser.add_argument("--dims", nargs="+", type=int)
+    parser.add_argument("--runs", type=int)
+    parser.add_argument("--budget-per-dim", type=int)
+    parser.add_argument("--instances", choices=list(INSTANCES), default="test")
     parser.add_argument("--reference", help="algorithm the significance tests compare against "
                                             "(default: first candidate, or first baseline if there are none)")
     parser.add_argument("--timeout", type=float, default=3600, help="seconds allowed per candidate")
     parser.add_argument("--out", type=Path, default=Path("results/comparison"))
     args = parser.parse_args()
+    for key, value in SUITES[args.suite].items():
+        if getattr(args, key) is None:
+            setattr(args, key, value)
 
     suite_kwargs = dict(functions=args.functions, dims=args.dims, n_runs=args.runs,
-                        budget_per_dim=args.budget_per_dim)
+                        budget_per_dim=args.budget_per_dim, instances=INSTANCES[args.instances])
     suites, failed = [], {}
 
     for path in args.candidates:
