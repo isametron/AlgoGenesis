@@ -4,7 +4,7 @@ LLM-guided evolutionary discovery of metaheuristic optimization algorithms.
 
 We reproduce and extend [LLaMEA](https://arxiv.org/abs/2405.20132) (van Stein & Bäck, IEEE TEVC 2025). A large language model acts as the evolutionary operator: it writes optimizer code, the code is scored on benchmark functions, and the score is fed back so the LLM can improve on its best design. LLaMEA used paid GPT-4; this project uses only free open-weight models (gpt-oss, Qwen) at zero cost. We also compare the loop against a sampling control with no feedback, audit the evaluator for exploits, and check whether the "new" algorithms are known ones renamed.
 
-Course project for Bio-Inspired Algorithms (BMSCE) by Siddhant, Pratyush and Om. The full plan, prior-art audit and risk register are in [`reports/`](reports/).
+Course project for Bio-Inspired Algorithms (BMSCE) by Siddhant, Pratyush and Om.
 
 ## How evaluation works
 
@@ -50,7 +50,7 @@ The harness measures it the same way whatever its source. See [INTERFACE.md](INT
 | `scripts/compare.py` | Full comparison of baselines and LLM-found algorithms, written to `results/comparison/` |
 | `scripts/run_baselines.py` | Quick baseline-only numbers (Phase 1) |
 | `tests/` | Harness, BBOB, report and exploit-canary tests |
-| `reports/`, `research_notes/` | Master technical report and the research behind it |
+| `data/` | Logs and best programs from the LLM runs (see [data/README.md](data/README.md)) |
 
 ## Setup
 
@@ -80,7 +80,7 @@ print(result.fitness, result.error)
 Run the comparison: the baselines plus any LLM-found algorithms, each a `.py` file defining `optimize`. It runs on test instances by default.
 
 ```bash
-.venv/Scripts/python scripts/compare.py --candidates found/*.py --runs 30
+.venv/Scripts/python scripts/compare.py --candidates data/found/*.py --runs 30
 ```
 
 ## Status
@@ -88,6 +88,7 @@ Run the comparison: the baselines plus any LLM-found algorithms, each a `.py` fi
 - [x] Harness, classic benchmarks, PSO and GA baselines, comparison pipeline
 - [x] Exploit hardening and train/test split
 - [x] BBOB suite; training fitness frozen
-- [ ] LLM client, (1+1) loop and no-feedback control, run on GitHub Actions (Pratyush)
-- [ ] Prompts, pilot measurement, run monitoring and analysis (Om)
+- [x] LLM client, (1+1) loop and no-feedback control, run on GitHub Actions (Pratyush)
+- [x] Prompts and run monitoring (Om)
+- [ ] Run analysis (Om)
 - [ ] DE, CMA-ES and BIPOP-CMA-ES baselines; statistics upgrade; BBOB test phase (Siddhant)

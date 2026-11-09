@@ -1,16 +1,13 @@
 name: LLM runs
 
-# Runs the LLaMEA experiment queues, one job per model, every 6 hours.
+# Runs the LLaMEA experiment queues, one job per model. Manual trigger only.
 # Logs (results/llm_runs/) and best programs (found/) live on the `llm-runs`
 # branch; code comes from the branch this workflow runs on (main).
-# Everything is resumable, so each fire just carries on where the last stopped.
+# Everything is resumable, so each run carries on where the last stopped.
 #
 # Manual test, no keys needed: Actions > LLM runs > Run workflow > tick "fake".
-# Scheduled runs only fire for the default branch, so merge this file to main.
 
 on:
-  schedule:
-    - cron: "0 */6 * * *"
   workflow_dispatch:
     inputs:
       fake:
@@ -61,7 +58,6 @@ jobs:
           - model: gpt-oss-120b
             provider: cerebras
             queue: "A:5,B:5"
-          # Groq (openai/gpt-oss-20b, queue "A:3") is off: Om's account must not be billed.
     concurrency:
       group: llm-runs-${{ matrix.provider }}-${{ matrix.model }}
       cancel-in-progress: false
