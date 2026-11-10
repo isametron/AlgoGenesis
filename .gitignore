@@ -9,3 +9,6 @@ demo_output/
 
 # Paper draft: keep out of the public repo until after review (similarity checks)
 paper/
+
+# Local test-phase output (comparison.json is 73 MB)
+/results/
