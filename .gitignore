@@ -6,3 +6,6 @@ research_notes/
 results/llm_runs/
 .env
 demo_output/
+
+# Paper draft: keep out of the public repo until after review (similarity checks)
+paper/

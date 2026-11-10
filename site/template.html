@@ -1,0 +1,825 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AlgoGenesis</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: one reading column for the story, wider panels for the interactive parts; topographic bands as the motif. */
+:root {
+  --bg: #F3F5F8; --surface: #FFFFFF; --ink: #131A26; --muted: #586377; --line: #DCE1E9;
+  --accent: #2E49D1; --accent-soft: #E5E9FB; --good: #1C7F55; --bad: #BE3D2A;
+  --land-lo: #2E49D1; --land-hi: #F3F5F8;
+  --c-bipop: #0072B2; --c-qwen: #D55E00; --c-gpt: #CC79A7; --c-cma: #56B4E9;
+  --c-de: #009E73; --c-pso: #E69F00; --c-ga: #7F7F7F; --c-random: #1A1A1A;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --read: 680px; --wide: 1080px; --radius: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D121B; --surface: #151C28; --ink: #E5E9F1; --muted: #98A2B5; --line: #263042;
+  --accent: #8C9FFF; --accent-soft: #1D2646; --good: #4CC38A; --bad: #F07A63;
+  --land-lo: #8C9FFF; --land-hi: #0D121B;
+  --c-bipop: #4FA3E0; --c-qwen: #F08A3E; --c-gpt: #E39AC4; --c-cma: #7CC8F0;
+  --c-de: #2CC79A; --c-pso: #F0B43A; --c-ga: #A0A6B0; --c-random: #D0D4DC;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0D121B; --surface: #151C28; --ink: #E5E9F1; --muted: #98A2B5; --line: #263042;
+  --accent: #8C9FFF; --accent-soft: #1D2646; --good: #4CC38A; --bad: #F07A63;
+  --land-lo: #8C9FFF; --land-hi: #0D121B;
+  --c-bipop: #4FA3E0; --c-qwen: #F08A3E; --c-gpt: #E39AC4; --c-cma: #7CC8F0;
+  --c-de: #2CC79A; --c-pso: #F0B43A; --c-ga: #A0A6B0; --c-random: #D0D4DC;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.col { max-width: var(--read); margin-inline: auto; }
+.wide { max-width: var(--wide); margin-inline: auto; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 3.2vw, 2rem); font-weight: 600; letter-spacing: -0.01em; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent); }
+code, pre, .mono { font-family: var(--mono); }
+.eyebrow { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.lead { font-size: 1.15rem; color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+.num { font-variant-numeric: tabular-nums; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.stack-lg { display: flex; flex-direction: column; gap: 28px; }
+
+/* Header */
+.top { border-bottom: 1px solid var(--line); background: var(--surface); }
+.top .wide { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-block: 14px; }
+.brand { font-family: var(--display); font-weight: 700; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+.brand svg { flex: none; }
+.top nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.9rem; }
+.top nav a { color: var(--muted); text-decoration: none; }
+.top nav a:hover { color: var(--ink); }
+
+/* Hero */
+.hero { padding-block: 56px 40px; position: relative; overflow: hidden; }
+.hero .contours { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.55; pointer-events: none; }
+.hero .wide { position: relative; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.hero-copy { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.verdict { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.verdict-rows { display: flex; flex-direction: column; gap: 12px; }
+.vrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+.vrow .who { font-size: 0.8rem; color: var(--muted); }
+.vrow .val { font-family: var(--mono); font-size: 0.9rem; grid-row: span 2; align-self: center; }
+.vbar { grid-column: 1 / -1; height: 8px; background: var(--accent-soft); border-radius: 4px; overflow: hidden; }
+.vbar span { display: block; height: 100%; border-radius: 4px; }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.fact b { display: block; font-family: var(--display); font-size: 1.6rem; font-weight: 600; line-height: 1.1; }
+.fact span { font-size: 0.85rem; color: var(--muted); }
+
+/* Sections */
+section { padding-block: 56px; border-top: 1px solid var(--line); }
+.section-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; min-width: 0; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+
+details.tech { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+details.tech > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; font-size: 0.92rem; list-style: none; display: flex; align-items: center; gap: 10px; }
+details.tech > summary::-webkit-details-marker { display: none; }
+details.tech > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; flex: none; }
+details.tech[open] > summary::before { transform: rotate(45deg); }
+details.tech > summary .tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 99px; }
+details.tech > .body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; font-size: 0.93rem; }
+details.tech ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Buttons and controls */
+button, select, input { font: inherit; color: inherit; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select { border: 1px solid var(--line); background: var(--surface); padding: 7px 10px; border-radius: 8px; max-width: 100%; }
+input[type="range"] { accent-color: var(--accent); width: 100%; }
+
+/* Demo */
+.demo { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.demo canvas { width: 100%; aspect-ratio: 1; border-radius: var(--radius); border: 1px solid var(--line); display: block; max-width: 100%; }
+.readout { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 0.92rem; }
+.readout dt { color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--mono); }
+.legend-dots { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.85rem; color: var(--muted); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; }
+
+/* Loop */
+.loop { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; counter-reset: step; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; }
+.step::before { counter-increment: step; content: counter(step); font-family: var(--mono); font-size: 0.8rem; color: var(--accent); }
+.step p { font-size: 0.9rem; color: var(--muted); }
+.loop-back { margin-top: 10px; font-size: 0.88rem; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.loop-back svg { flex: none; }
+.arms { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.arm { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 4px; }
+.arm.b { border-left-color: var(--muted); }
+
+pre.code { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px; overflow: auto; font-size: 0.78rem; line-height: 1.5; max-height: 440px; white-space: pre; }
+
+/* Run viewer */
+.callcard { display: flex; flex-direction: column; gap: 10px; }
+.callcard .name { font-family: var(--mono); font-size: 0.95rem; word-break: break-word; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid currentColor; width: fit-content; }
+.pill.best { color: var(--accent); }
+.pill.ok { color: var(--muted); }
+.pill.fail { color: var(--bad); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.88rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--mono); }
+.slider-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg.chart text { font-family: var(--body); font-size: 12px; fill: var(--muted); }
+svg.chart .grid { stroke: var(--line); stroke-width: 1; }
+svg.chart .axis { stroke: var(--muted); stroke-width: 1; }
+
+/* Results */
+.bars { display: flex; flex-direction: column; gap: 12px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr) 64px; gap: 14px; align-items: center; }
+.bar-row .lab { display: flex; flex-direction: column; min-width: 0; }
+.bar-row .lab b { font-weight: 600; font-size: 0.95rem; }
+.bar-row .lab span { font-size: 0.8rem; color: var(--muted); }
+.bar-track { height: 14px; background: var(--accent-soft); border-radius: 4px; position: relative; }
+.bar-track span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+.bar-row .v { font-family: var(--mono); font-size: 0.9rem; text-align: right; }
+.ai-tag { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-left: 6px; }
+.chips { display: flex; flex-direction: column; gap: 10px; }
+.chip-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip-group .g { font-size: 0.8rem; color: var(--muted); width: 100%; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 3px 9px; font-family: var(--mono); font-size: 0.8rem; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; font-size: 0.8rem; cursor: pointer; background: var(--surface); }
+.toggle[aria-pressed="false"] { opacity: 0.45; }
+.toggle i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 0.8rem; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; }
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.check { display: flex; flex-direction: column; gap: 6px; }
+.check b { font-family: var(--display); font-size: 1.05rem; }
+.check p { color: var(--muted); font-size: 0.93rem; }
+
+footer { border-top: 1px solid var(--line); padding-block: 36px 48px; background: var(--surface); font-size: 0.9rem; }
+footer .wide { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; }
+
+@media (max-width: 860px) {
+  .hero .wide, .split, .demo, .two { grid-template-columns: minmax(0, 1fr); }
+  .loop { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bar-row { grid-template-columns: minmax(0, 1fr) 60px; }
+  .bar-row .bar-track { grid-column: 1 / -1; grid-row: 2; }
+}
+@media (max-width: 520px) {
+  .loop, .arms, .checks { grid-template-columns: minmax(0, 1fr); }
+  section { padding-block: 40px; }
+  svg.chart text { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top wrap">
+  <div class="wide">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><g fill="none" stroke="var(--accent)" stroke-width="1.6"><ellipse cx="13" cy="13" rx="11" ry="8"/><ellipse cx="13" cy="13" rx="7" ry="5"/><ellipse cx="13" cy="13" rx="3" ry="2"/></g><circle cx="13" cy="13" r="1.3" fill="var(--accent)"/></svg>
+      AlgoGenesis
+    </div>
+    <nav aria-label="Sections">
+      <a href="#idea">The idea</a><a href="#try">Try it</a><a href="#loop">How it works</a><a href="#watch">Watch a run</a><a href="#results">Results</a><a href="#fair">Fair test</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero wrap">
+  <svg class="contours" id="hero-contours" aria-hidden="true"></svg>
+  <div class="wide">
+    <div class="hero-copy">
+      <div class="eyebrow">BMS College of Engineering · research project</div>
+      <h1>Can a free AI model invent an optimization algorithm?</h1>
+      <p class="lead">We asked open-weight language models to write search algorithms as Python code. Every program was tested on 24 standard benchmark problems, and the score went back to the model so it could try to do better. This page shows what the models came up with and how it compares with algorithms people designed.</p>
+      <div class="facts" id="hero-facts"></div>
+    </div>
+    <div class="verdict" aria-labelledby="verdict-title">
+      <div class="eyebrow" id="verdict-title">The short answer</div>
+      <p id="verdict-text"></p>
+      <div class="verdict-rows" id="verdict-rows"></div>
+      <p class="small muted">Score from 0 to 1 on problems the programs never saw while being written. Higher is better.</p>
+    </div>
+  </div>
+</div>
+
+<main>
+<section id="idea" class="wrap">
+  <div class="col stack-lg">
+    <div class="section-head">
+      <div class="eyebrow">The idea</div>
+      <h2>Finding the lowest point of a landscape you cannot see</h2>
+    </div>
+    <p>Many real problems come down to the same task: choose numbers that make something as small as possible. That could be the cost of a design, the error of a model, or the length of a delivery route. Picture the possible choices as a hilly landscape, where height is the cost. You are blindfolded. You may test one spot at a time and are told its height, and you only get a limited number of tries. Where do you look next?</p>
+    <p>A search algorithm is a strategy for answering that question. People have invented many: some copy evolution, some copy flocks of birds, and some fit a statistical model of where the good spots are. Designing a good one takes experts years. We wanted to know whether a language model, given the task in plain text, could write one that holds up against the best human designs.</p>
+    <details class="tech">
+      <summary><span class="tag">Technical</span>The problem, precisely</summary>
+      <div class="body">
+        <p>Each algorithm minimizes a black-box function <code>f : ℝ<sup>5</sup> → ℝ</code> on the box [−5, 5]<sup>5</sup> with a hard budget of 10,000 evaluations (2,000 × dimension, as in LLaMEA). The functions are the 24 noiseless BBOB functions from the COCO platform. Every algorithm, human or generated, implements the same signature, <code>optimize(func, dim, bounds, budget)</code>.</p>
+        <p>The score is the area over the convergence curve (AOCC), as in LLaMEA: the best-so-far error after each evaluation, on a log scale clipped to [10<sup>−8</sup>, 10<sup>2</sup>], averaged over the run and flipped so that 1 means the optimum was reached immediately and 0 means no progress. A crashed run scores 0.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section id="try" class="wrap">
+  <div class="wide stack-lg">
+    <div class="section-head col" style="margin-inline:0">
+      <div class="eyebrow">Try it</div>
+      <h2>Two ways to search, 150 tries each</h2>
+      <p class="muted">The map below is a landscape seen from above, with darker bands lower down. Random guessing ignores what it has learned. An evolution strategy keeps the best spot so far, tries nearby, and widens or narrows its steps depending on how well that works. When it gets stuck, it restarts somewhere new.</p>
+    </div>
+    <div class="demo">
+      <canvas id="demo-canvas" width="400" height="400" aria-label="Map of the search landscape with tried points"></canvas>
+      <div class="stack">
+        <div class="controls" role="group" aria-label="Landscape">
+          <span class="small muted">Landscape</span>
+          <button class="btn" id="land-bowl" aria-pressed="true">Smooth valley</button>
+          <button class="btn" id="land-bumpy" aria-pressed="false">Many traps</button>
+        </div>
+        <div class="controls">
+          <button class="btn primary" id="run-es">Run evolution strategy</button>
+          <button class="btn" id="run-random">Run random guessing</button>
+        </div>
+        <dl class="readout" id="demo-readout"></dl>
+        <div class="legend-dots">
+          <span><i class="dot" style="background:var(--c-random)"></i>Random guess</span>
+          <span><i class="dot" style="background:var(--c-qwen)"></i>Evolution strategy</span>
+          <span><i class="dot" style="background:transparent;border:2px solid var(--ink)"></i>True lowest point</span>
+        </div>
+        <p class="small muted">On the smooth valley the evolution strategy finds the bottom fast. On the landscape with many traps it can get stuck in a dip and needs restarts. Real benchmarks mix both kinds, in five dimensions instead of two, which is why no single trick wins everywhere.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="loop" class="wrap">
+  <div class="wide stack-lg">
+    <div class="section-head col" style="margin-inline:0">
+      <div class="eyebrow">How it works</div>
+      <h2>The language model is the inventor; our code is the judge</h2>
+      <p class="muted">We rebuilt the LLaMEA method (van Stein and Bäck, IEEE TEVC 2025), which used paid GPT-4, with free open-weight models only. One run is 50 rounds of this loop.</p>
+    </div>
+    <div>
+      <div class="loop">
+        <div class="step"><h3>Ask</h3><p>A text prompt describes the task and the rules: Python only, numpy allowed, stay within the budget.</p></div>
+        <div class="step"><h3>Write</h3><p>The model replies with a complete search algorithm, a function called <code>optimize</code>, and gives it a name.</p></div>
+        <div class="step"><h3>Check</h3><p>Our audit scans the code before it runs and rejects anything that could cheat or escape. It runs in a separate process with a time limit.</p></div>
+        <div class="step"><h3>Score</h3><p>The program runs on all 24 benchmark problems, three versions each: 72 runs of 10,000 tries. The result is one score from 0 to 1.</p></div>
+        <div class="step"><h3>Feed back</h3><p>The model sees its score, its best program so far, its last ten attempts and any error message, then writes the next version.</p></div>
+      </div>
+      <div class="loop-back"><svg width="34" height="16" viewBox="0 0 34 16" aria-hidden="true"><path d="M32 3 H6 a3 3 0 0 0 -3 3 v0 M3 6 l-2.5 -3 M3 6 l2.5 -3" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/></svg>Step 5 leads back to step 1. Fifty rounds per run, and the best program of the run is kept.</div>
+    </div>
+    <div class="panel stack">
+      <h3>Two versions, to see whether the feedback matters</h3>
+      <div class="arms">
+        <div class="arm"><b>Arm A · with feedback</b><span class="muted small">The full loop above. A new program replaces the current best only if it scores at least as high.</span></div>
+        <div class="arm b"><b>Arm B · no feedback (control)</b><span class="muted small">Steps 1 to 4 only. The model gets the same plain prompt every time and never sees a score. We keep whichever program scored best.</span></div>
+      </div>
+      <p class="small muted" id="loop-models"></p>
+    </div>
+    <details class="tech">
+      <summary><span class="tag">Technical</span>The exact task prompt</summary>
+      <div class="body">
+        <p>This is the prompt Arm B sends on every call. Arm A adds the list of recent attempts, the current best code with its score, and the last traceback.</p>
+        <pre class="code" id="task-prompt"></pre>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section id="watch" class="wrap">
+  <div class="wide stack-lg">
+    <div class="section-head col" style="margin-inline:0">
+      <div class="eyebrow">Watch a run</div>
+      <h2>Fifty attempts, replayed from the logs</h2>
+      <p class="muted">Each dot is one program the model wrote, placed at its score. Crosses along the bottom are programs that crashed, ran too long or were rejected. The line is the best score so far. Drag the slider, press Play, or click a dot.</p>
+    </div>
+    <div class="controls">
+      <label class="small muted" for="run-select">Run</label>
+      <select id="run-select"></select>
+    </div>
+    <div class="split">
+      <div class="panel stack">
+        <svg class="chart" id="run-chart" viewBox="0 0 640 330" role="img" aria-label="Score of each program in the selected run"></svg>
+        <div class="slider-row">
+          <button class="btn" id="play">Play</button>
+          <input type="range" id="call-slider" min="1" max="50" value="50" aria-label="Call number">
+          <span class="mono small num" id="call-label"></span>
+        </div>
+      </div>
+      <div class="panel callcard" id="call-card" aria-live="polite"></div>
+    </div>
+    <details class="tech" id="code-details">
+      <summary><span class="tag">Code</span><span id="code-summary">Best program so far</span></summary>
+      <div class="body"><pre class="code" id="best-code"></pre></div>
+    </details>
+  </div>
+</section>
+
+<section id="results" class="wrap">
+  <div class="wide stack-lg">
+    <div class="section-head col" style="margin-inline:0">
+      <div class="eyebrow">Results</div>
+      <h2>How the AI-written programs compare</h2>
+      <p class="muted" id="results-intro"></p>
+    </div>
+    <div class="panel stack">
+      <h3>Overall score on unseen problems</h3>
+      <div class="bars" id="overall-bars"></div>
+      <p class="small muted">Average score over 24 functions × 15 unseen versions = 360 runs per algorithm. The two AI programs are the ones that scored highest during writing, one per model, chosen before testing.</p>
+    </div>
+
+    <div class="panel stack">
+      <h3>Problem by problem</h3>
+      <p class="small muted">Pick a benchmark function. Each line shows how close an algorithm gets to the lowest point as it spends its 10,000 tries; lower and earlier is better. Lines are the median of 15 runs.</p>
+      <div class="chips" id="fn-chips"></div>
+      <div class="split">
+        <div class="stack" style="min-width:0">
+          <div><b id="fn-title"></b> <span class="muted small" id="fn-group"></span></div>
+          <svg class="chart" id="fn-chart" viewBox="0 0 640 340" role="img" aria-label="Convergence curves for the selected function"></svg>
+          <div class="toggles" id="fn-toggles"></div>
+        </div>
+        <div class="table-wrap"><table id="fn-table"></table></div>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="panel stack">
+        <h3>By type of problem</h3>
+        <div class="table-wrap"><table id="group-table"></table></div>
+        <p class="small muted" id="group-text"></p>
+      </div>
+      <div class="panel stack" id="arms-panel">
+        <h3>Did the feedback help?</h3>
+        <svg class="chart" id="arms-chart" viewBox="0 0 420 210" role="img" aria-label="Test scores of the best program from each run, with and without feedback"></svg>
+        <p class="small" id="arms-text"></p>
+      </div>
+    </div>
+
+    <details class="tech">
+      <summary><span class="tag">Technical</span>Statistical tests</summary>
+      <div class="body" id="stats-body"></div>
+    </details>
+  </div>
+</section>
+
+<section id="fair" class="wrap">
+  <div class="col stack-lg">
+    <div class="section-head">
+      <div class="eyebrow">Fair test</div>
+      <h2>Making sure the AI could not cheat</h2>
+      <p class="muted">A program that writes programs will find loopholes if they exist. We closed the ones we could think of, and tested that they stay closed.</p>
+    </div>
+    <div class="checks" id="checks"></div>
+    <div class="callout stack">
+      <h3>Are these algorithms new?</h3>
+      <p class="muted">Mostly they are new combinations of known parts. The names say as much: hybrids of differential evolution, CMA-ES, simplex search and particle swarms, or restart variants of CMA-ES. That matches published concerns about novelty claims in this field. The result we can stand behind is narrower: free models, with no human help, wrote programs that perform at the level of a widely used expert design.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <div class="wide">
+    <div class="stack" style="gap:6px">
+      <b>AlgoGenesis</b>
+      <span class="muted">Hitha S, Siddhant Verma, Pratyush Narain and Om · Dept. of Artificial Intelligence and Data Science, B.M.S. College of Engineering, Bengaluru</span>
+    </div>
+    <div class="stack" style="gap:6px">
+      <span class="muted">Code and data: <a href="https://github.com/isametron/AlgoGenesis">github.com/isametron/AlgoGenesis</a></span>
+      <span class="muted">Method: <a href="https://arxiv.org/abs/2405.20132">LLaMEA</a> (van Stein and Bäck). Benchmarks: <a href="https://github.com/numbbo/coco">COCO / BBOB</a>.</span>
+    </div>
+  </div>
+</footer>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(() => {
+const D = JSON.parse(document.getElementById("data").textContent);
+const $ = (id) => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const f3 = (x) => x == null ? "–" : x.toFixed(3);
+const pct = (x) => Math.round(x * 100) + "%";
+const GPT = D.picks.gpt, QWEN = D.picks.qwen;
+const progName = Object.fromEntries(D.programs.map((p) => [p.program, p.name.replace(/‑/g, "-")]));
+
+const META = {
+  "BIPOP-CMA-ES": { label: "BIPOP-CMA-ES", who: "Human design, 2009", color: "--c-bipop", dash: "" },
+  [QWEN]: { label: "Qwen program", who: "Written by Qwen 3.8 27B (Arm A, run 1)", color: "--c-qwen", dash: "", ai: true },
+  [GPT]: { label: "gpt-oss program", who: "Written by gpt-oss-120b (Arm A, run 2)", color: "--c-gpt", dash: "6 4", ai: true },
+  "CMA-ES": { label: "CMA-ES", who: "Human design, 2001", color: "--c-cma", dash: "6 4" },
+  "DE": { label: "Differential evolution", who: "Human design, 1997", color: "--c-de", dash: "2 4" },
+  "PSO": { label: "Particle swarm", who: "Human design, 1995", color: "--c-pso", dash: "8 3 2 3" },
+  "GA": { label: "Genetic algorithm", who: "Human design, 1970s", color: "--c-ga", dash: "2 4" },
+  "Random": { label: "Random guessing", who: "No strategy", color: "--c-random", dash: "8 3 2 3" },
+};
+const GROUP_PLAIN = {
+  "separable": "Each direction can be solved on its own",
+  "low or moderate conditioning": "Smooth, slightly stretched valleys",
+  "high conditioning, unimodal": "One valley, but extremely long and narrow",
+  "multimodal, adequate global structure": "Many traps, with an overall downhill trend",
+  "multimodal, weak global structure": "Many traps and no overall trend",
+};
+
+function el(tag, attrs = {}, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+/* ---------- Hero ---------- */
+const ov = D.overall;
+const totalCalls = Object.values(D.calls).reduce((s, c) => s + c.calls, 0);
+const totalValid = Object.values(D.calls).reduce((s, c) => s + c.err_None, 0);
+const totalRuns = Object.values(D.calls).reduce((s, c) => s + c.runs, 0);
+$("hero-facts").innerHTML = [
+  [totalCalls, "programs written by AI"],
+  [totalRuns, "complete search runs"],
+  ["24", "benchmark problems"],
+  ["Free", "open-weight models only"],
+].map(([b, s]) => `<div class="fact"><b class="num">${b}</b><span>${s}</span></div>`).join("");
+
+const pw = D.pairwise;
+const tiedCma = pw[`${QWEN}|CMA-ES`].p_holm >= 0.05;
+const behindBipop = pw[`${QWEN}|BIPOP-CMA-ES`].p_holm < 0.05;
+$("verdict-text").innerHTML = `The best AI-written program performed ${tiedCma ? "about as well as" : "differently from"} <b>CMA-ES</b>, a widely used expert design, ${behindBipop ? "but stayed behind" : "and close to"} <b>BIPOP-CMA-ES</b>, its stronger restart version.`;
+const heroSet = ["BIPOP-CMA-ES", QWEN, "CMA-ES", "Random"];
+$("verdict-rows").innerHTML = heroSet.map((k) => `
+  <div class="vrow"><b>${META[k].label}${META[k].ai ? '<span class="ai-tag">AI</span>' : ""}</b><span class="val num">${f3(ov[k].aocc)}</span>
+  <span class="who">${META[k].who}</span>
+  <div class="vbar"><span style="width:${(ov[k].aocc / 0.7 * 100).toFixed(1)}%;background:var(${META[k].color})"></span></div></div>`).join("");
+
+// Decorative contour lines behind the hero.
+(function contours() {
+  const svg = $("hero-contours");
+  svg.setAttribute("viewBox", "0 0 1200 520");
+  svg.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  const cx = 980, cy = 260;
+  for (let i = 1; i <= 14; i++) {
+    const pts = [];
+    for (let a = 0; a <= 64; a++) {
+      const t = (a / 64) * Math.PI * 2;
+      const r = i * 34 * (1 + 0.12 * Math.sin(3 * t + i * 0.4) + 0.06 * Math.cos(5 * t - i));
+      pts.push(`${(cx + r * 1.35 * Math.cos(t)).toFixed(1)},${(cy + r * Math.sin(t)).toFixed(1)}`);
+    }
+    el("polygon", { points: pts.join(" "), fill: "none", stroke: "var(--line)", "stroke-width": i % 4 === 0 ? 1.6 : 1 }, svg);
+  }
+})();
+
+/* ---------- Demo ---------- */
+const demo = { land: "bowl", timer: null, points: [], best: null, used: 0, mode: null };
+const OPT = [1.4, -0.9];
+const LAND = {
+  bowl(x, y) {
+    const dx = x - OPT[0], dy = y - OPT[1], c = Math.cos(0.55), s = Math.sin(0.55);
+    const u = c * dx + s * dy, v = -s * dx + c * dy;
+    return u * u + 12 * v * v;
+  },
+  bumpy(x, y) {
+    const a = x - OPT[0], b = y - OPT[1];
+    return 20 + a * a - 10 * Math.cos(2 * Math.PI * a) + b * b - 10 * Math.cos(2 * Math.PI * b);
+  },
+};
+function cssColor(name) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const m = v.match(/^#([0-9a-f]{6})$/i);
+  return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128];
+}
+let landCache = null;
+function drawDemo() {
+  const cv = $("demo-canvas"), ctx = cv.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), size = 400;
+  if (cv.width !== size * dpr) { cv.width = size * dpr; cv.height = size * dpr; landCache = null; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const key = demo.land + document.documentElement.dataset.theme + matchMedia("(prefers-color-scheme: dark)").matches;
+  if (!landCache || landCache.key !== key) {
+    const lo = cssColor("--land-lo"), hi = cssColor("--land-hi"), f = LAND[demo.land];
+    const n = 200, img = ctx.createImageData(n, n), vals = [];
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) vals.push(Math.log1p(f(-5 + 10 * (i + 0.5) / n, 5 - 10 * (j + 0.5) / n)));
+    const mx = Math.max(...vals), bands = 11;
+    vals.forEach((v, k) => {
+      const t = Math.floor((v / mx) * bands) / bands;   // banded like a contour map
+      const w = 0.12 + 0.88 * t;
+      for (let c = 0; c < 3; c++) img.data[k * 4 + c] = Math.round(lo[c] * (1 - w) + hi[c] * w);
+      img.data[k * 4 + 3] = 255;
+    });
+    const off = document.createElement("canvas"); off.width = n; off.height = n;
+    off.getContext("2d").putImageData(img, 0, 0);
+    landCache = { key, off };
+  }
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(landCache.off, 0, 0, size, size);
+  const toPx = (x, y) => [(x + 5) / 10 * size, (5 - y) / 10 * size];
+  const colRandom = `rgb(${cssColor("--c-random").join(",")})`, colEs = `rgb(${cssColor("--c-qwen").join(",")})`;
+  for (const p of demo.points) {
+    const [px, py] = toPx(p.x, p.y);
+    ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fillStyle = p.mode === "es" ? colEs : colRandom; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  if (demo.best) {
+    const [px, py] = toPx(demo.best.x, demo.best.y);
+    ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.lineWidth = 2.5; ctx.strokeStyle = demo.mode === "es" ? colEs : colRandom; ctx.stroke();
+  }
+  if (demo.used >= 150) {
+    const [px, py] = toPx(OPT[0], OPT[1]);
+    ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI * 2);
+    ctx.lineWidth = 2; ctx.strokeStyle = `rgb(${cssColor("--ink").join(",")})`; ctx.stroke();
+  }
+  const name = demo.mode === "es" ? "Evolution strategy" : demo.mode === "random" ? "Random guessing" : "–";
+  $("demo-readout").innerHTML = `
+    <dt>Strategy</dt><dd>${name}</dd>
+    <dt>Tries used</dt><dd class="num">${demo.used} / 150</dd>
+    <dt>Lowest height found</dt><dd class="num">${demo.best ? demo.best.f.toFixed(3) : "–"}</dd>
+    <dt>True lowest height</dt><dd class="num">0.000</dd>`;
+}
+function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const clip = (v) => Math.max(-5, Math.min(5, v));
+function runDemo(mode) {
+  clearInterval(demo.timer);
+  const f = LAND[demo.land];
+  Object.assign(demo, { mode, points: [], best: null, used: 0 });
+  let cur = null, sigma = 1.5;
+  const sample = () => {
+    let x, y;
+    if (mode === "random" || !cur) { x = -5 + 10 * Math.random(); y = -5 + 10 * Math.random(); }
+    else { x = clip(cur.x + sigma * gauss()); y = clip(cur.y + sigma * gauss()); }
+    const p = { x, y, f: f(x, y), mode };
+    demo.points.push(p); demo.used++;
+    if (!demo.best || p.f < demo.best.f) demo.best = p;
+    if (mode === "es") {
+      if (!cur || p.f <= cur.f) { cur = p; sigma *= 1.3; } else sigma *= 0.93;
+      if (sigma < 0.03) { cur = null; sigma = 1.5; }   // stuck: restart somewhere new
+    }
+  };
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { while (demo.used < 150) sample(); drawDemo(); return; }
+  demo.timer = setInterval(() => { sample(); drawDemo(); if (demo.used >= 150) clearInterval(demo.timer); }, 22);
+}
+function setLand(l) {
+  clearInterval(demo.timer);
+  Object.assign(demo, { land: l, points: [], best: null, used: 0, mode: null });
+  $("land-bowl").setAttribute("aria-pressed", l === "bowl");
+  $("land-bumpy").setAttribute("aria-pressed", l === "bumpy");
+  drawDemo();
+}
+$("land-bowl").onclick = () => setLand("bowl");
+$("land-bumpy").onclick = () => setLand("bumpy");
+$("run-es").onclick = () => runDemo("es");
+$("run-random").onclick = () => runDemo("random");
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { landCache = null; drawDemo(); });
+new MutationObserver(() => { landCache = null; drawDemo(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+// Start with a finished example so the panel is not empty.
+runDemoInstant("es");
+function runDemoInstant(mode) {
+  const f = LAND[demo.land]; Object.assign(demo, { mode, points: [], best: null, used: 0 });
+  let cur = null, sigma = 1.5;
+  while (demo.used < 150) {
+    let x, y;
+    if (!cur) { x = -5 + 10 * Math.random(); y = -5 + 10 * Math.random(); } else { x = clip(cur.x + sigma * gauss()); y = clip(cur.y + sigma * gauss()); }
+    const p = { x, y, f: f(x, y), mode }; demo.points.push(p); demo.used++;
+    if (!demo.best || p.f < demo.best.f) demo.best = p;
+    if (!cur || p.f <= cur.f) { cur = p; sigma *= 1.3; } else sigma *= 0.93;
+    if (sigma < 0.03) { cur = null; sigma = 1.5; }
+  }
+  drawDemo();
+}
+
+/* ---------- Loop ---------- */
+const c = D.calls;
+$("loop-models").textContent = `Models: gpt-oss-120b, ${c["gpt-oss-120b/A"].runs} runs with feedback and ${c["gpt-oss-120b/B"].runs} without; Qwen 3.8 27B, ${c["qwen-3.8-27b/A"].runs} runs with feedback. All calls went through the Cerebras free tier between 1 and 4 November 2026. One Qwen run stopped at 36 calls when the free quota ran out.`;
+$("task-prompt").textContent = D.task_prompt;
+
+/* ---------- Run viewer ---------- */
+const runs = D.runs;
+const runLabel = (r) => `${r.model === "gpt-oss-120b" ? "gpt-oss-120b" : "Qwen 3.8 27B"} · Arm ${r.arm} (${r.arm === "A" ? "feedback" : "no feedback"}) · run ${r.run}`;
+$("run-select").innerHTML = runs.map((r, i) => `<option value="${i}">${esc(runLabel(r))}</option>`).join("");
+const startRun = runs.findIndex((r) => r.id === QWEN);
+$("run-select").value = String(startRun >= 0 ? startRun : 0);
+let cur = { run: null, call: 50 }, playTimer = null;
+const ERR = { runtime: "Crashed while running", syntax: "Not valid Python", timeout: "Ran too long", policy: "Rejected by the code audit" };
+
+function drawRunChart() {
+  const r = cur.run, svg = $("run-chart");
+  svg.innerHTML = "";
+  const W = 640, H = 330, m = { l: 48, r: 14, t: 14, b: 44 };
+  const n = 50, maxY = 0.7;
+  const x = (k) => m.l + (k - 0.5) / n * (W - m.l - m.r);
+  const y = (v) => H - m.b - (v / maxY) * (H - m.t - m.b);
+  for (let v = 0; v <= maxY + 1e-9; v += 0.1) {
+    el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: "grid" }, svg);
+    el("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" }, svg).textContent = v.toFixed(1);
+  }
+  for (const k of [1, 10, 20, 30, 40, 50]) el("text", { x: x(k), y: H - m.b + 18, "text-anchor": "middle" }, svg).textContent = k;
+  el("text", { x: (m.l + W - m.r) / 2, y: H - 6, "text-anchor": "middle" }, svg).textContent = "Attempt number";
+  const yl = el("text", { x: 14, y: (m.t + H - m.b) / 2, "text-anchor": "middle", transform: `rotate(-90 14 ${(m.t + H - m.b) / 2})` }, svg);
+  yl.textContent = "Score while writing (0 to 1)";
+  // Highlight the current call.
+  el("rect", { x: x(cur.call) - (W - m.l - m.r) / n / 2, y: m.t, width: (W - m.l - m.r) / n, height: H - m.t - m.b, fill: "var(--accent-soft)" }, svg);
+  const shown = r.calls.filter((cl) => cl.call <= cur.call);
+  // Best-so-far step line.
+  let d = "", prev = null;
+  for (const cl of shown) {
+    if (cl.best == null) continue;
+    if (prev == null) d += `M${x(cl.call) - 4},${y(cl.best)}`;
+    else d += `H${x(cl.call)}V${y(cl.best)}`;
+    prev = cl.best;
+  }
+  if (d) { d += `H${x(cur.call) + 4}`; el("path", { d, fill: "none", stroke: "var(--accent)", "stroke-width": 2 }, svg); }
+  for (const cl of shown) {
+    if (cl.fitness == null) {
+      const cx = x(cl.call), cy = y(0) - 7;
+      el("path", { d: `M${cx - 4},${cy - 4}L${cx + 4},${cy + 4}M${cx + 4},${cy - 4}L${cx - 4},${cy + 4}`, stroke: "var(--bad)", "stroke-width": 1.8, fill: "none" }, svg);
+    } else {
+      el("circle", { cx: x(cl.call), cy: y(cl.fitness), r: cl.improved ? 5.5 : 3.8, fill: cl.improved ? "var(--accent)" : "var(--surface)", stroke: cl.improved ? "var(--accent)" : "var(--muted)", "stroke-width": 1.5 }, svg);
+    }
+  }
+  // Click targets.
+  for (const cl of r.calls) {
+    const hit = el("rect", { x: x(cl.call) - (W - m.l - m.r) / n / 2, y: m.t, width: (W - m.l - m.r) / n, height: H - m.t - m.b, fill: "transparent", style: "cursor:pointer" }, svg);
+    hit.addEventListener("click", () => setCall(cl.call));
+  }
+}
+function setCall(k) {
+  const r = cur.run;
+  cur.call = Math.max(1, Math.min(r.calls.length, k));
+  $("call-slider").value = cur.call;
+  $("call-label").textContent = `${cur.call} / ${r.calls.length}`;
+  const cl = r.calls[cur.call - 1];
+  const status = cl.fitness == null
+    ? `<span class="pill fail">${ERR[cl.error_type] || "Failed"}</span>`
+    : cl.improved ? `<span class="pill best">New best</span>` : `<span class="pill ok">Valid, not better</span>`;
+  const bestCall = Math.max(...Object.keys(r.code).map(Number).filter((n) => n <= cur.call), 0);
+  const bestCl = bestCall ? r.calls[bestCall - 1] : null;
+  $("call-card").innerHTML = `
+    <div class="eyebrow">Attempt ${cl.call}</div>
+    <div class="name">${esc(cl.name || "unnamed program")}</div>
+    ${status}
+    <dl class="kv">
+      <dt>Score</dt><dd class="num">${cl.fitness == null ? "0 (failed)" : f3(cl.fitness)}</dd>
+      ${cl.error ? `<dt>Error</dt><dd style="font-size:0.8rem;word-break:break-word">${esc(cl.error)}</dd>` : ""}
+      <dt>Best so far</dt><dd class="num">${f3(cl.best)}${bestCl ? ` (attempt ${bestCall})` : ""}</dd>
+      <dt>Answer length</dt><dd class="num">${cl.tokens ?? "–"} tokens in ${cl.latency_s} s</dd>
+    </dl>
+    <p class="small muted">${cur.call === r.calls.length ? finalLine(r) : "Keep going to see where this run ends."}</p>`;
+  $("code-summary").textContent = bestCl ? `Best program after attempt ${cur.call}: ${bestCl.name || "unnamed"} (attempt ${bestCall}, score ${f3(bestCl.fitness)})` : "No valid program yet";
+  $("best-code").textContent = bestCl ? r.code[String(bestCall)] : "";
+  drawRunChart();
+}
+function finalLine(r) {
+  if (r.test && r.test.test != null) return `This run's best program scored <b class="num">${f3(r.test.test)}</b> on the unseen test problems.`;
+  const why = D.failed_in_test[r.id];
+  return why ? `This run's best program could not finish the test phase (${esc(why)}).` : "";
+}
+function setRun(i) {
+  stopPlay();
+  cur.run = runs[i];
+  $("call-slider").max = cur.run.calls.length;
+  setCall(cur.run.calls.length);
+}
+function stopPlay() { clearInterval(playTimer); playTimer = null; $("play").textContent = "Play"; }
+$("run-select").onchange = (e) => setRun(Number(e.target.value));
+$("call-slider").oninput = (e) => { stopPlay(); setCall(Number(e.target.value)); };
+$("play").onclick = () => {
+  if (playTimer) return stopPlay();
+  if (cur.call >= cur.run.calls.length) setCall(1);
+  $("play").textContent = "Pause";
+  playTimer = setInterval(() => { if (cur.call >= cur.run.calls.length) return stopPlay(); setCall(cur.call + 1); }, 320);
+};
+setRun(Number($("run-select").value));
+
+/* ---------- Results ---------- */
+const order = D.selected.slice().sort((a, b) => ov[b].aocc - ov[a].aocc);
+$("results-intro").textContent = `All programs were tested on ${D.settings.instances.length} versions of each problem that were never used while the models were writing. ${D.programs.length - Object.keys(D.failed_in_test).length} of the ${D.programs.length} best-of-run programs finished the test; the other ran past the one-hour limit.`;
+$("overall-bars").innerHTML = order.map((k) => `
+  <div class="bar-row">
+    <div class="lab"><b>${META[k].label}${META[k].ai ? '<span class="ai-tag">AI-written</span>' : ""}</b><span>${META[k].who}${META[k].ai && progName[k] && progName[k] !== "unnamed" ? ` · “${esc(progName[k])}”` : ""}</span></div>
+    <div class="bar-track"><span style="width:${(ov[k].aocc / 0.7 * 100).toFixed(1)}%;background:var(${META[k].color})"></span></div>
+    <div class="v num">${f3(ov[k].aocc)}</div>
+  </div>`).join("");
+
+// Function explorer.
+const visible = Object.fromEntries(D.selected.map((k) => [k, true]));
+let fnIdx = 9;  // f10, rotated ellipsoid: the curves separate clearly
+const groups = Object.entries(D.groups);
+$("fn-chips").innerHTML = groups.map(([g, ids]) => `
+  <div class="chip-group"><span class="g">${GROUP_PLAIN[g]}</span>
+  ${ids.map((i) => `<button class="chip" data-fn="${i - 1}" aria-pressed="false" title="${esc(D.functions[i - 1].name)}">f${i}</button>`).join("")}</div>`).join("");
+$("fn-chips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) { fnIdx = Number(b.dataset.fn); drawFn(); } });
+$("fn-toggles").innerHTML = D.selected.map((k) => `<button class="toggle" data-k="${esc(k)}" aria-pressed="true"><i style="background:var(${META[k].color})"></i>${META[k].label}</button>`).join("");
+$("fn-toggles").addEventListener("click", (e) => { const b = e.target.closest(".toggle"); if (!b) return; const k = b.dataset.k; visible[k] = !visible[k]; b.setAttribute("aria-pressed", visible[k]); drawFn(); });
+
+function drawFn() {
+  const fn = D.functions[fnIdx];
+  document.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", Number(b.dataset.fn) === fnIdx));
+  $("fn-title").textContent = `f${fn.number} · ${fn.name}`;
+  $("fn-group").textContent = `· ${GROUP_PLAIN[fn.group]}`;
+  const svg = $("fn-chart"); svg.innerHTML = "";
+  const W = 640, H = 340, m = { l: 56, r: 14, t: 12, b: 44 };
+  const x = (e) => m.l + (Math.log10(Math.max(e, 1)) / 4) * (W - m.l - m.r);
+  const y = (le) => m.t + ((2 - le) / 10) * (H - m.t - m.b);
+  for (let le = 2; le >= -8; le -= 2) {
+    el("line", { x1: m.l, x2: W - m.r, y1: y(le), y2: y(le), class: "grid" }, svg);
+    const t = el("text", { x: m.l - 8, y: y(le) + 4, "text-anchor": "end" }, svg);
+    t.textContent = le === 0 ? "1" : `10${le < 0 ? "⁻" : ""}${"⁰¹²³⁴⁵⁶⁷⁸⁹"[Math.abs(le)]}`;
+  }
+  for (const [e, lab] of [[1, "1"], [10, "10"], [100, "100"], [1000, "1,000"], [10000, "10,000"]]) el("text", { x: x(e), y: H - m.b + 18, "text-anchor": "middle" }, svg).textContent = lab;
+  el("text", { x: (m.l + W - m.r) / 2, y: H - 6, "text-anchor": "middle" }, svg).textContent = "Tries used (log scale)";
+  const cyl = (m.t + H - m.b) / 2;
+  el("text", { x: 14, y: cyl, "text-anchor": "middle", transform: `rotate(-90 14 ${cyl})` }, svg).textContent = "Distance from lowest point";
+  // Draw the AI programs last so they sit on top.
+  const drawOrder = D.selected.filter((k) => !META[k].ai).concat(D.selected.filter((k) => META[k].ai));
+  for (const k of drawOrder) {
+    const a = fn.algorithms[k];
+    if (!visible[k] || !a.curve) continue;
+    const pts = a.curve.evals.map((e, i) => `${x(e).toFixed(1)},${y(a.curve.log_error[i]).toFixed(1)}`).join(" ");
+    el("polyline", { points: pts, fill: "none", stroke: `var(${META[k].color})`, "stroke-width": META[k].ai ? 2.6 : 1.8, "stroke-dasharray": META[k].dash, "stroke-linejoin": "round" }, svg);
+  }
+  const rows = D.selected.slice().sort((p, q) => fn.algorithms[q].aocc - fn.algorithms[p].aocc);
+  $("fn-table").innerHTML = `<thead><tr><th>Algorithm</th><th class="n">Score</th><th class="n">Solved</th></tr></thead><tbody>${rows.map((k) => `
+    <tr><td><i class="dot" style="background:var(${META[k].color})"></i>${META[k].label}</td><td class="n">${f3(fn.algorithms[k].aocc)}</td><td class="n">${pct(fn.algorithms[k].solved)}</td></tr>`).join("")}</tbody>`;
+}
+drawFn();
+
+// Group table.
+const gnames = Object.keys(D.groups);
+const SHORT = { "BIPOP-CMA-ES": "BIPOP", [QWEN]: "Qwen", [GPT]: "gpt-oss", "CMA-ES": "CMA-ES" };
+$("group-table").innerHTML = `<thead><tr><th>Problem type</th>${["BIPOP-CMA-ES", QWEN, GPT, "CMA-ES"].map((k) => `<th class="n">${SHORT[k]}</th>`).join("")}</tr></thead><tbody>${gnames.map((g) => `
+  <tr><td style="white-space:normal;min-width:150px">${GROUP_PLAIN[g]}</td>${["BIPOP-CMA-ES", QWEN, GPT, "CMA-ES"].map((k) => `<td class="n">${f3(ov[k].groups[g])}</td>`).join("")}</tr>`).join("")}</tbody>`;
+{
+  const beat = gnames.filter((g) => ov[QWEN].groups[g] > ov["BIPOP-CMA-ES"].groups[g] && ov[GPT].groups[g] > ov["BIPOP-CMA-ES"].groups[g]);
+  const behind = gnames.filter((g) => ov[QWEN].groups[g] < ov["BIPOP-CMA-ES"].groups[g] && ov[GPT].groups[g] < ov["BIPOP-CMA-ES"].groups[g]);
+  const lower = (g) => GROUP_PLAIN[g].charAt(0).toLowerCase() + GROUP_PLAIN[g].slice(1);
+  $("group-text").textContent = "Average score by problem type. " +
+    (beat.length ? `Both AI programs beat BIPOP-CMA-ES on: ${beat.map(lower).join("; ")}. ` : "") +
+    (behind.length ? `Both fall behind it on: ${behind.map(lower).join("; ")}.` : "");
+}
+
+// Arms chart.
+(function arms() {
+  const A = D.arms, svg = $("arms-chart");
+  const W = 420, H = 210, m = { l: 44, r: 14, t: 12, b: 34 };
+  const lo = 0.35, hi = 0.6;
+  const y = (v) => H - m.b - ((v - lo) / (hi - lo)) * (H - m.t - m.b);
+  for (let v = 0.35; v <= 0.6001; v += 0.05) {
+    el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: "grid" }, svg);
+    el("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" }, svg).textContent = v.toFixed(2);
+  }
+  const cols = [["With feedback (A)", A.test_A, "var(--accent)", 150], ["No feedback (B)", A.test_B, "var(--muted)", 310]];
+  for (const [lab, vals, col, cx] of cols) {
+    vals.forEach((v, i) => el("circle", { cx: cx + (i - 2) * 14, cy: y(v), r: 5.5, fill: col, "fill-opacity": 0.85 }, svg));
+    const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+    el("line", { x1: cx - 44, x2: cx + 44, y1: y(mean), y2: y(mean), stroke: col, "stroke-width": 2 }, svg);
+    el("text", { x: cx, y: H - 10, "text-anchor": "middle" }, svg).textContent = lab;
+  }
+  const big = A.test_p < 0.05;
+  $("arms-text").innerHTML = `Each dot is the best program from one gpt-oss-120b run, scored on unseen problems; the bar is the average. With five runs per arm the difference between best programs is ${big ? "significant" : `<b>not significant</b> (p = ${A.test_p.toFixed(2)})`}. Looking at every valid program instead of only the best, feedback did raise the average score, from ${f3(A.valid_mean_B)} to ${f3(A.valid_mean_A)} (p = ${A.valid_p.toFixed(3)}, an exploratory test).`;
+})();
+
+// Stats details.
+(function statsBody() {
+  const F = D.friedman, labs = (k) => META[k] ? META[k].label : k;
+  const ranks = Object.entries(F.avg_rank).sort((a, b) => a[1] - b[1]);
+  const pairRows = Object.entries(D.pairwise).map(([key, v]) => { const [a, b] = key.split("|"); return `<tr><td>${labs(a)}</td><td>${labs(b)}</td><td class="n">${v.wins} / 24</td><td class="n">${v.p_holm < 0.001 ? "&lt;0.001" : v.p_holm.toFixed(3)}</td><td class="n">${v.a12.toFixed(2)}</td></tr>`; }).join("");
+  $("stats-body").innerHTML = `
+    <p>Friedman test over the 24 functions (mean AOCC per function, 8 algorithms): χ² = ${F.chi2.toFixed(1)}, df = ${F.df}, p = ${F.p.toExponential(1)}. Average ranks (lower is better), with a Nemenyi critical difference of ${F.nemenyi_cd.toFixed(2)}:</p>
+    <div class="table-wrap"><table><thead><tr><th>Algorithm</th><th class="n">Average rank</th></tr></thead><tbody>${ranks.map(([k, r]) => `<tr><td>${labs(k)}</td><td class="n">${r.toFixed(2)}</td></tr>`).join("")}</tbody></table></div>
+    <p>Pairwise: two-sided Wilcoxon signed-rank tests over the 24 per-function means, Holm-corrected over all 12 tests. “Wins” counts functions where the AI program has the higher mean AOCC. Â₁₂ is the Vargha–Delaney effect size over the 360 runs; above 0.5 favors the AI program.</p>
+    <div class="table-wrap"><table><thead><tr><th>AI program</th><th>vs</th><th class="n">Wins</th><th class="n">p (Holm)</th><th class="n">Â₁₂</th></tr></thead><tbody>${pairRows}</tbody></table></div>
+    <p>Arm A against Arm B (gpt-oss-120b, best program per run, test instances): Mann–Whitney p = ${D.arms.test_p.toFixed(2)}, Â₁₂ = ${D.arms.test_a12.toFixed(2)}, bootstrap 95% interval for the mean difference [${D.arms.test_diff_boot95[0].toFixed(3)}, ${D.arms.test_diff_boot95[1].toFixed(3)}].</p>`;
+})();
+
+/* ---------- Fair test ---------- */
+const errs = { syntax: 0, runtime: 0, timeout: 0, policy: 0 };
+for (const v of Object.values(D.calls)) for (const k of Object.keys(errs)) errs[k] += v["err_" + k] || 0;
+const au = D.audit;
+$("checks").innerHTML = [
+  ["We count the tries", "The test harness counts every call to the problem and records the best value itself. A program cannot claim a better result than it found, or take more than its 10,000 tries."],
+  ["Unseen test problems", `While writing, the models only saw versions 1 to 3 of each problem. Every score on this page comes from versions ${D.settings.instances[0]} to ${D.settings.instances.at(-1)}, which were held back.`],
+  ["Code is checked first", `Before any program runs, an audit rejects forbidden imports and tricks such as reading the answer from the problem object. It rejected ${errs.policy} of ${totalCalls} programs. Another ${errs.syntax + errs.runtime + errs.timeout} failed on their own: ${errs.syntax} were not valid Python, ${errs.runtime} crashed and ${errs.timeout} ran too long.`],
+  ["Nothing out of bounds", `In the test phase we re-checked the ${au.programs_tested} finished programs: ${au.out_of_bounds_evals} evaluations outside the allowed box and ${au.program_flags} suspicious-code flags.`],
+].map(([b, p]) => `<div class="check"><b>${b}</b><p>${p}</p></div>`).join("");
+})();
+</script>
