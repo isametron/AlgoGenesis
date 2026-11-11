@@ -47,8 +47,13 @@ The harness measures it the same way whatever its source. See [INTERFACE.md](INT
 | `algogenesis/benchmarks.py` | Classic shifted Sphere and Rastrigin; `make_problem` for every suite |
 | `algogenesis/baselines/` | PSO, real-coded GA, DE, CMA-ES, BIPOP-CMA-ES and random search |
 | `algogenesis/report.py` | Results tables (Markdown and LaTeX), significance tests, convergence plots |
-| `scripts/compare.py` | Full comparison of baselines and LLM-found algorithms, written to `results/comparison/` |
+| `scripts/run_llm.py` | One LLM run: the (1+1) loop (arm A) or the no-feedback control (arm B); resumable |
+| `scripts/run_queue.py` | A queue of runs for one model, used by the GitHub Actions workflow in `.github/workflows/` |
+| `scripts/compare.py` | Full comparison of baselines and LLM-found algorithms, written to `results/comparison/` by default |
 | `scripts/run_baselines.py` | Quick baseline-only numbers (Phase 1) |
+| `scripts/demo.py` | Two-minute end-to-end demo; `--fake` runs offline |
+| `scripts/make_paper_assets.py` | Every statistic, table and figure for the paper, from the saved test-phase results |
+| `scripts/make_site.py` | Builds the explainer page `site/index.html` from `site/template.html` and the saved results |
 | `tests/` | Harness, BBOB, report and exploit-canary tests |
 | `data/` | Logs and best programs from the LLM runs (see [data/README.md](data/README.md)) |
 
@@ -83,11 +88,43 @@ Run the comparison: the baselines plus any LLM-found algorithms, each a `.py` fi
 .venv/Scripts/python scripts/compare.py --candidates data/found/*.py --runs 30
 ```
 
-The paper's test phase runs everything on all 24 BBOB functions, 5-D, 15 held-out instances:
+The paper's test phase runs everything on all 24 BBOB functions, 15 held-out instances, in 5-D and then in 10-D and 20-D. Qwen A3 is left out of the 10-D and 20-D runs because it exceeded the one-hour limit in 5-D. At 20-D the run takes about two hours, and the machine must not sleep: the per-candidate time limit keeps counting while it does.
 
 ```bash
-.venv/Scripts/python scripts/compare.py --suite bbob --candidates data/found/*.py
+.venv/Scripts/python scripts/compare.py --suite bbob --candidates data/found/*.py --out results/test_phase
 ```
+
+```bash
+C=$(ls data/found/*.py | grep -v qwen-3.8-27b_A_run3)
+.venv/Scripts/python scripts/compare.py --suite bbob --dims 10 --candidates $C --out results/test_phase_10d
+.venv/Scripts/python scripts/compare.py --suite bbob --dims 20 --candidates $C --out results/test_phase_20d
+```
+
+Then build the paper's numbers and the explainer page from those results. `results/` and `paper/` are not tracked (`comparison.json` is about 75 MB per dimension), so both scripts need the runs above on your machine.
+
+```bash
+.venv/Scripts/python scripts/make_paper_assets.py
+.venv/Scripts/python -X utf8 scripts/make_site.py
+```
+
+## Results
+
+Mean AOCC on the held-out instances (higher is better). The programs were searched for in 5-D only. Qwen A1 and gpt-oss A2 are the programs with the highest training fitness for each model.
+
+| Algorithm | 5-D | 10-D | 20-D |
+|---|---|---|---|
+| BIPOP-CMA-ES | 0.588 | 0.509 | 0.446 |
+| Qwen A1 (CMA-ES with restarts) | 0.554 | 0.443 | 0.241 |
+| gpt-oss A2 (jDE + Nelder-Mead + (1+1)-ES) | 0.531 | 0.289 | 0.120 |
+| CMA-ES | 0.517 | 0.465 | 0.408 |
+| DE | 0.371 | 0.152 | 0.064 |
+| PSO | 0.327 | 0.238 | 0.187 |
+| GA | 0.249 | 0.193 | 0.159 |
+| Random search | 0.091 | 0.043 | 0.025 |
+
+- In 5-D the free models reach CMA-ES level but not BIPOP-CMA-ES. That advantage does not transfer: in 10-D and 20-D no generated program beats CMA-ES.
+- With five runs per arm, the feedback loop's best programs are not significantly better than the control's (p = 0.31 in 5-D). Feedback does raise the average valid program (exploratory, p = 0.008).
+- gpt-oss A2 crashes on 9–11% of test runs (depending on dimension) with a NumPy error, after no failures in training, and Qwen A3 hangs on test instances.
 
 ## Status
 
@@ -98,4 +135,7 @@ The paper's test phase runs everything on all 24 BBOB functions, 5-D, 15 held-ou
 - [x] Prompts and run monitoring (Om)
 - [ ] Run analysis (Om)
 - [x] DE, CMA-ES, BIPOP-CMA-ES and random-search baselines (Siddhant)
-- [ ] Statistics upgrade; BBOB test phase (Siddhant)
+- [x] Statistics upgrade; BBOB test phase in 5-D, 10-D and 20-D (Siddhant)
+- [x] Paper assets script and explainer page
+
+The LLM runs are finished. The Cerebras free tier began returning HTTP 402 on 4 November 2026, so no further runs are planned.

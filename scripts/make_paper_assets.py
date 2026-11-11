@@ -2,7 +2,8 @@
 
     python scripts/make_paper_assets.py
 
-Reads results/test_phase/comparison.json and data/. Writes paper/stats.json,
+Reads results/test_phase/comparison.json and data/, plus the 10-D and 20-D
+re-tests in results/test_phase_10d and _20d when present. Writes paper/stats.json,
 paper/tables/*.tex and paper/figures/*.pdf. No optimizer is run.
 """
 import collections
@@ -29,6 +30,7 @@ BASELINES = ["BIPOP-CMA-ES", "CMA-ES", "DE", "PSO", "GA", "Random"]
 LABEL = {GPT: "gpt-oss A2", QWEN: "Qwen A1"}
 SELECTED = ["BIPOP-CMA-ES", QWEN, GPT, "CMA-ES", "DE", "PSO", "GA", "Random"]
 FUNCTIONS = [f"bbob_f{i}" for i in range(1, 25)]
+DIMS = {5: "results/test_phase", 10: "results/test_phase_10d", 20: "results/test_phase_20d"}
 NEMENYI_Q_8 = 3.031  # two-tailed alpha = 0.05, k = 8 (Demsar 2006)
 
 # Okabe-Ito hues, designed to stay distinct under colour-vision deficiency; line styles double the encoding.
@@ -251,8 +253,70 @@ def main():
     fig.savefig(PAPER / "figures/fig_arms.pdf")
     plt.close(fig)
 
+    scaling(stats)
     (PAPER / "stats.json").write_text(json.dumps(stats, indent=1), encoding="utf-8")
     print(json.dumps(stats, indent=1))
+
+
+def scaling(stats):
+    """Same programs and baselines re-tested at 10-D and 20-D (programs were trained at 5-D only)."""
+    found = {d: ROOT / p / "comparison.json" for d, p in DIMS.items()}
+    found = {d: p for d, p in found.items() if p.exists()}
+    if set(found) == {5}:
+        return
+    per_dim, tests = {}, []
+    for d, path in found.items():
+        data = json.loads(path.read_text(encoding="utf-8"))
+        algos = {a["name"]: a for a in data["algorithms"]}
+        pf = {}
+        for name, a in algos.items():
+            g = collections.defaultdict(list)
+            for r in a["runs"]:
+                g[r["function"]].append(r["aocc"])
+            pf[name] = np.array([np.mean(g[f]) for f in FUNCTIONS])
+        programs = sorted(n for n in algos if "_run" in n)
+        fit = {n: algos[n]["fitness"] for n in algos}
+        arm = lambda a: [fit[f"gpt-oss-120b_{a}_run{i}"] for i in range(1, 6)]
+        matrix = np.array([pf[n] for n in SELECTED]).T
+        chi2, p = friedmanchisquare(*matrix.T)
+        crashes = [r for r in algos[GPT]["runs"] if not r["ok"]]
+        per_dim[d] = {
+            "aocc": {n: fit[n] for n in SELECTED},
+            "avg_rank": dict(zip(SELECTED, map(float, rankdata(-matrix, axis=1).mean(axis=0)))),
+            "friedman_chi2": float(chi2), "friedman_p": float(p),
+            "programs": len(programs),
+            "above": {b: sum(fit[n] > fit[b] for n in programs) for b in ("BIPOP-CMA-ES", "CMA-ES", "DE", "PSO")},
+            "best_program": max(programs, key=fit.get), "best_program_aocc": max(fit[n] for n in programs),
+            "gpt_A2_crashed_runs": len(crashes), "gpt_A2_crashed_functions": len({r["function"] for r in crashes}),
+            "arm_mean": [float(np.mean(arm("A"))), float(np.mean(arm("B")))], "arm_p": exact(arm("A"), arm("B")),
+            "out_of_bounds_evals": sum(r["out_of_bounds"] for n in programs for r in algos[n]["runs"]),
+            "program_flags": sum(len(algos[n]["flags"]) for n in programs),
+        }
+        if d != 5:
+            for llm in (QWEN, GPT):
+                for b in ("BIPOP-CMA-ES", "CMA-ES"):
+                    tests.append((d, llm, b, int((pf[llm] > pf[b]).sum()), float(wilcoxon(pf[llm], pf[b]).pvalue)))
+    adj = holm([t[4] for t in tests])
+    stats["scaling"] = {"dims": per_dim, "pairwise": [
+        {"dim": d, "program": a, "baseline": b, "wins": w, "p": p, "p_holm": float(h)}
+        for (d, a, b, w, p), h in zip(tests, adj)]}
+
+    dims = sorted(per_dim)
+    head = " & ".join(f"{d}-D" for d in dims)
+    lines = [r"\begin{tabular}{l" + "c" * len(dims) + "}", r"\toprule", f"Algorithm & {head}" + r" \\", r"\midrule"]
+    for name in SELECTED:
+        best = [max(per_dim[d]["aocc"].values()) for d in dims]
+        cells = [(r"\textbf{%.3f}" if per_dim[d]["aocc"][name] == m else "%.3f") % per_dim[d]["aocc"][name]
+                 for d, m in zip(dims, best)]
+        lines.append(f"{label(name)} & " + " & ".join(cells) + r" \\")
+    lines.append(r"\midrule")
+    for b in ("CMA-ES", "PSO"):
+        lines.append(f"Programs above {b} & "
+                     + " & ".join(f"{per_dim[d]['above'][b]}/{per_dim[d]['programs']}" for d in dims) + r" \\")
+    lines.append(r"gpt-oss arm A / B & "
+                 + " & ".join("%.3f / %.3f" % tuple(per_dim[d]["arm_mean"]) for d in dims) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    (PAPER / "tables/scaling.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
