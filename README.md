@@ -6,6 +6,8 @@ We reproduce and extend [LLaMEA](https://arxiv.org/abs/2405.20132) (van Stein & 
 
 Course project for Bio-Inspired Algorithms (BMSCE) by Siddhant, Pratyush and Om.
 
+**Explainer page:** [`site/index.html`](site/index.html) presents the project and its results for a general reader, with interactive charts, every function's convergence curves, the 5/10/20-D comparison, and each LLM run call by call with the generated code. It is a single self-contained file: download it and open it in any browser, with no server or install needed. See [Explainer page](#explainer-page) below.
+
 ## How evaluation works
 
 Every algorithm, hand-written or LLM-generated, implements one function:
@@ -125,6 +127,20 @@ Mean AOCC on the held-out instances (higher is better). The programs were search
 - In 5-D the free models reach CMA-ES level but not BIPOP-CMA-ES. That advantage does not transfer: in 10-D and 20-D no generated program beats CMA-ES.
 - With five runs per arm, the feedback loop's best programs are not significantly better than the control's (p = 0.31 in 5-D). Feedback does raise the average valid program (exploratory, p = 0.008).
 - gpt-oss A2 crashes on 9–11% of test runs (depending on dimension) with a NumPy error, after no failures in training, and Qwen A3 hangs on test instances.
+
+## Explainer page
+
+[`site/index.html`](site/index.html) explains the project and shows all of the results above for a general reader. It covers:
+
+- the summary verdict and the overall scores;
+- the 5/10/20-D comparison;
+- per-function convergence curves;
+- each LLM run call by call, with the code of every improvement;
+- the statistical tests and the integrity audit.
+
+To view it, open the file in a browser (on GitHub, download it first, since GitHub shows HTML as source). It works offline; only the web fonts need the internet, and system fonts are used without them.
+
+The page is generated, so don't edit `index.html` by hand. Edit `site/template.html`, then rebuild with `scripts/make_site.py` (see [Usage](#usage)); every number on the page comes from the saved results.
 
 ## Status
 
