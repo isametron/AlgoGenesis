@@ -2,7 +2,8 @@
 
     python scripts/make_site.py
 
-Reads paper/stats.json (run scripts/make_paper_assets.py first),
+Reads paper/stats.json (run scripts/make_paper_assets.py first; it carries the
+10-D/20-D re-test summary),
 results/test_phase/comparison.json and the LLM run logs in data/. Fills the
 data placeholder in site/template.html and writes site/index.html.
 No optimizer is run, and no number on the page is typed by hand.
@@ -127,6 +128,7 @@ def main():
         "functions": functions_block(algos),
         "runs": runs_block(test_scores),
         "task_prompt": task_prompt(),
+        "scaling": stats.get("scaling"),  # 10-D/20-D re-test; None if those runs are absent
     }
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     template = (ROOT / "site/template.html").read_text(encoding="utf-8")

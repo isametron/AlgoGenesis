@@ -282,6 +282,7 @@ def scaling(stats):
         crashes = [r for r in algos[GPT]["runs"] if not r["ok"]]
         per_dim[d] = {
             "aocc": {n: fit[n] for n in SELECTED},
+            "program_aocc": {n: fit[n] for n in programs},
             "avg_rank": dict(zip(SELECTED, map(float, rankdata(-matrix, axis=1).mean(axis=0)))),
             "friedman_chi2": float(chi2), "friedman_p": float(p),
             "programs": len(programs),

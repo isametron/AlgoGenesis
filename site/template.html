@@ -217,7 +217,7 @@ footer .wide { display: flex; flex-wrap: wrap; justify-content: space-between; g
       <div class="eyebrow" id="verdict-title">The short answer</div>
       <p id="verdict-text"></p>
       <div class="verdict-rows" id="verdict-rows"></div>
-      <p class="small muted">Score from 0 to 1 on problems the programs never saw while being written. Higher is better.</p>
+      <p class="small muted">Score from 0 to 1 on 5-dimensional problems the programs never saw while being written. Higher is better.</p>
     </div>
   </div>
 </div>
@@ -346,7 +346,17 @@ footer .wide { display: flex; flex-wrap: wrap; justify-content: space-between; g
     <div class="panel stack">
       <h3>Overall score on unseen problems</h3>
       <div class="bars" id="overall-bars"></div>
-      <p class="small muted">Average score over 24 functions × 15 unseen versions = 360 runs per algorithm. The two AI programs are the ones that scored highest during writing, one per model, chosen before testing.</p>
+      <p class="small muted">Average score over 24 functions × 15 unseen versions = 360 runs per algorithm, in 5 dimensions, the size the programs were written for. The two AI programs are the ones that scored highest during writing, one per model, chosen before testing.</p>
+    </div>
+
+    <div class="panel stack" id="dims-panel" hidden>
+      <h3>Bigger problems: 5, 10 and 20 dimensions</h3>
+      <p class="small muted" id="dims-intro"></p>
+      <svg class="chart" id="dims-chart" viewBox="0 0 640 360" role="img" aria-label="Average score of each algorithm at 5, 10 and 20 dimensions" style="max-width:760px"></svg>
+      <div class="two">
+        <div class="table-wrap"><table id="dims-table"></table></div>
+        <p class="small" id="dims-text"></p>
+      </div>
     </div>
 
     <div class="panel stack">
@@ -393,7 +403,7 @@ footer .wide { display: flex; flex-wrap: wrap; justify-content: space-between; g
     <div class="checks" id="checks"></div>
     <div class="callout stack">
       <h3>Are these algorithms new?</h3>
-      <p class="muted">Mostly they are new combinations of known parts. The names say as much: hybrids of differential evolution, CMA-ES, simplex search and particle swarms, or restart variants of CMA-ES. That matches published concerns about novelty claims in this field. The result we can stand behind is narrower: free models, with no human help, wrote programs that perform at the level of a widely used expert design.</p>
+      <p class="muted">Mostly they are new combinations of known parts. The names say as much: hybrids of differential evolution, CMA-ES, simplex search and particle swarms, or restart variants of CMA-ES. That matches published concerns about novelty claims in this field. The result we can stand behind is narrower: free models, with no human help, wrote programs that perform at the level of a widely used expert design on the problem size they were written for. On larger problems that advantage disappears.</p>
     </div>
   </div>
 </section>
@@ -464,7 +474,10 @@ $("hero-facts").innerHTML = [
 const pw = D.pairwise;
 const tiedCma = pw[`${QWEN}|CMA-ES`].p_holm >= 0.05;
 const behindBipop = pw[`${QWEN}|BIPOP-CMA-ES`].p_holm < 0.05;
-$("verdict-text").innerHTML = `The best AI-written program performed ${tiedCma ? "about as well as" : "differently from"} <b>CMA-ES</b>, a widely used expert design, ${behindBipop ? "but stayed behind" : "and close to"} <b>BIPOP-CMA-ES</b>, its stronger restart version.`;
+const scal = D.scaling, scalDims = scal ? Object.keys(scal.dims).map(Number).sort((a, b) => a - b) : [];
+const bigD = scalDims.length > 1 ? scalDims.at(-1) : null;
+$("verdict-text").innerHTML = `On the 5-dimensional problems it was written for, the best AI-written program performed ${tiedCma ? "about as well as" : "differently from"} <b>CMA-ES</b>, a widely used expert design, ${behindBipop ? "but stayed behind" : "and close to"} <b>BIPOP-CMA-ES</b>, its stronger restart version.` +
+  (bigD ? ` On bigger ${bigD}-dimensional problems, ${scal.dims[bigD].above["CMA-ES"] === 0 ? "no AI program kept up with CMA-ES" : `${scal.dims[bigD].above["CMA-ES"]} AI programs stayed ahead of CMA-ES`}.` : "");
 const heroSet = ["BIPOP-CMA-ES", QWEN, "CMA-ES", "Random"];
 $("verdict-rows").innerHTML = heroSet.map((k) => `
   <div class="vrow"><b>${META[k].label}${META[k].ai ? '<span class="ai-tag">AI</span>' : ""}</b><span class="val num">${f3(ov[k].aocc)}</span>
@@ -720,6 +733,64 @@ $("overall-bars").innerHTML = order.map((k) => `
     <div class="v num">${f3(ov[k].aocc)}</div>
   </div>`).join("");
 
+// Dimension re-test: the same programs, written for 5-D, run unchanged at 10-D and 20-D.
+const SC = D.scaling;
+const dimsList = SC ? Object.keys(SC.dims).map(Number).sort((a, b) => a - b) : [];
+if (SC && dimsList.length > 1) {
+  $("dims-panel").hidden = false;
+  const d0 = dimsList[0], dN = dimsList.at(-1), at = (k, d) => SC.dims[d].aocc[k];
+  const nProg = SC.dims[d0].programs;
+  $("dims-intro").textContent = `The programs were written and scored on ${d0}-dimensional problems only. Here the same ${nProg} programs and the same human designs run unchanged on ${dimsList.slice(1).join("- and ")}-dimensional versions of the same unseen problems, with the budget scaled to 2,000 tries per dimension. Higher dimensions are harder, so every score drops; what matters is who drops furthest. Grey lines are the other ${nProg - 2} AI programs.`;
+  const svg = $("dims-chart");
+  const narrow = matchMedia("(max-width: 520px)").matches;
+  const W = 640, H = 360, m = { l: 48, r: narrow ? 205 : 168, t: 14, b: 44 };
+  const xs = (i) => m.l + 20 + i / (dimsList.length - 1) * (W - m.l - m.r - 40);
+  const y = (v) => H - m.b - (v / 0.65) * (H - m.t - m.b);
+  for (let v = 0; v <= 0.6001; v += 0.1) {
+    el("line", { x1: m.l, x2: W - m.r + 8, y1: y(v), y2: y(v), class: "grid" }, svg);
+    el("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" }, svg).textContent = v.toFixed(1);
+  }
+  dimsList.forEach((d, i) => el("text", { x: xs(i), y: H - m.b + 20, "text-anchor": "middle" }, svg).textContent = `${d}-D`);
+  el("text", { x: (m.l + W - m.r) / 2, y: H - 6, "text-anchor": "middle" }, svg).textContent = "Problem size (dimensions)";
+  const cyl = (m.t + H - m.b) / 2;
+  el("text", { x: 14, y: cyl, "text-anchor": "middle", transform: `rotate(-90 14 ${cyl})` }, svg).textContent = "Average score";
+  const line = (vals, attrs) => el("polyline", { points: vals.map((v, i) => `${xs(i).toFixed(1)},${y(v).toFixed(1)}`).join(" "), fill: "none", "stroke-linejoin": "round", ...attrs }, svg);
+  for (const p of Object.keys(SC.dims[d0].program_aocc || {})) {
+    if (p === QWEN || p === GPT || !dimsList.every((d) => SC.dims[d].program_aocc[p] != null)) continue;
+    line(dimsList.map((d) => SC.dims[d].program_aocc[p]), { stroke: "var(--muted)", "stroke-width": 1, "stroke-opacity": 0.35 });
+  }
+  const drawOrder = D.selected.filter((k) => !META[k].ai).concat(D.selected.filter((k) => META[k].ai));
+  for (const k of drawOrder) {
+    const vals = dimsList.map((d) => at(k, d));
+    line(vals, { stroke: `var(${META[k].color})`, "stroke-width": META[k].ai ? 2.8 : 1.9, "stroke-dasharray": META[k].dash });
+    vals.forEach((v, i) => el("circle", { cx: xs(i), cy: y(v), r: META[k].ai ? 4 : 3, fill: `var(${META[k].color})` }, svg));
+  }
+  // End labels, pushed apart so they do not overlap.
+  const labs = D.selected.map((k) => ({ k, y0: y(at(k, dN)) })).sort((a, b) => a.y0 - b.y0);
+  const gap = narrow ? 21 : 17;
+  labs.forEach((l, i) => { l.y = Math.max(l.y0, i ? labs[i - 1].y + gap : -Infinity); });
+  const floor = H - m.b + 4;
+  if (labs.at(-1).y > floor) {
+    labs.at(-1).y = floor;
+    for (let i = labs.length - 2; i >= 0; i--) labs[i].y = Math.min(labs[i].y, labs[i + 1].y - gap);
+  }
+  const xl = xs(dimsList.length - 1);
+  for (const l of labs) {
+    el("line", { x1: xl + 6, x2: xl + 16, y1: l.y0, y2: l.y, stroke: `var(${META[l.k].color})`, "stroke-width": 1 }, svg);
+    const t = el("text", { x: xl + 20, y: l.y + 4, style: `fill:var(--ink);font-weight:${META[l.k].ai ? 600 : 400}` }, svg);
+    t.textContent = META[l.k].label;
+  }
+  $("dims-table").innerHTML = `<thead><tr><th>Algorithm</th>${dimsList.map((d) => `<th class="n">${d}-D</th>`).join("")}</tr></thead><tbody>${D.selected.slice().sort((a, b) => at(b, dN) - at(a, dN)).map((k) => `
+    <tr><td><i class="dot" style="background:var(${META[k].color})"></i>${META[k].label}${META[k].ai ? '<span class="ai-tag">AI</span>' : ""}</td>${dimsList.map((d) => `<td class="n">${f3(at(k, d))}</td>`).join("")}</tr>`).join("")}</tbody>`;
+  const above = (b, d) => SC.dims[d].above[b];
+  const pq = SC.pairwise.find((r) => r.dim === dN && r.program === QWEN && r.baseline === "CMA-ES");
+  const bestN = SC.dims[dN].best_program, bestRun = runs.find((r) => r.id === bestN);
+  $("dims-text").innerHTML = `AI programs ahead of CMA-ES: ${dimsList.map((d) => `<b class="num">${above("CMA-ES", d)}</b> of ${SC.dims[d].programs} at ${d}-D`).join(", ")}. Ahead of particle swarm: ${dimsList.map((d) => `${above("PSO", d)} at ${d}-D`).join(", ")}. ` +
+    `The Qwen program drops from ${f3(at(QWEN, d0))} to ${f3(at(QWEN, dN))}, while CMA-ES only drops from ${f3(at("CMA-ES", d0))} to ${f3(at("CMA-ES", dN))}${pq && pq.p_holm < 0.05 ? ` (a significant gap at ${dN}-D, p = ${pq.p_holm.toFixed(3)})` : ""}. ` +
+    `So the AI programs were good at the size they were written for, not general-purpose optimizers. ` +
+    (bestRun ? `The AI program that held up best at ${dN}-D came from ${bestRun.arm === "B" ? "the no-feedback arm" : "the feedback arm"} (${esc(runLabel(bestRun))}, ${f3(SC.dims[dN].best_program_aocc)}).` : "");
+}
+
 // Function explorer.
 const visible = Object.fromEntries(D.selected.map((k) => [k, true]));
 let fnIdx = 9;  // f10, rotated ellipsoid: the curves separate clearly
@@ -808,7 +879,10 @@ $("group-table").innerHTML = `<thead><tr><th>Problem type</th>${["BIPOP-CMA-ES",
     <div class="table-wrap"><table><thead><tr><th>Algorithm</th><th class="n">Average rank</th></tr></thead><tbody>${ranks.map(([k, r]) => `<tr><td>${labs(k)}</td><td class="n">${r.toFixed(2)}</td></tr>`).join("")}</tbody></table></div>
     <p>Pairwise: two-sided Wilcoxon signed-rank tests over the 24 per-function means, Holm-corrected over all 12 tests. “Wins” counts functions where the AI program has the higher mean AOCC. Â₁₂ is the Vargha–Delaney effect size over the 360 runs; above 0.5 favors the AI program.</p>
     <div class="table-wrap"><table><thead><tr><th>AI program</th><th>vs</th><th class="n">Wins</th><th class="n">p (Holm)</th><th class="n">Â₁₂</th></tr></thead><tbody>${pairRows}</tbody></table></div>
-    <p>Arm A against Arm B (gpt-oss-120b, best program per run, test instances): Mann–Whitney p = ${D.arms.test_p.toFixed(2)}, Â₁₂ = ${D.arms.test_a12.toFixed(2)}, bootstrap 95% interval for the mean difference [${D.arms.test_diff_boot95[0].toFixed(3)}, ${D.arms.test_diff_boot95[1].toFixed(3)}].</p>`;
+    <p>Arm A against Arm B (gpt-oss-120b, best program per run, test instances): Mann–Whitney p = ${D.arms.test_p.toFixed(2)}, Â₁₂ = ${D.arms.test_a12.toFixed(2)}, bootstrap 95% interval for the mean difference [${D.arms.test_diff_boot95[0].toFixed(3)}, ${D.arms.test_diff_boot95[1].toFixed(3)}].</p>` +
+    (SC && dimsList.length > 1 ? `
+    <p>Higher dimensions: the same programs and baselines, unchanged, on the same test instances with a budget of 2,000 × dimension. Wilcoxon tests over the 24 per-function means, Holm-corrected over these ${SC.pairwise.length} tests. Arm A against Arm B (mean of best programs): ${dimsList.slice(1).map((d) => `${d}-D ${f3(SC.dims[d].arm_mean[0])} vs ${f3(SC.dims[d].arm_mean[1])}, p = ${SC.dims[d].arm_p.toFixed(2)}`).join("; ")}.</p>
+    <div class="table-wrap"><table><thead><tr><th>Dim.</th><th>AI program</th><th>vs</th><th class="n">Wins</th><th class="n">p (Holm)</th></tr></thead><tbody>${SC.pairwise.map((v) => `<tr><td class="num">${v.dim}-D</td><td>${labs(v.program)}</td><td>${labs(v.baseline)}</td><td class="n">${v.wins} / 24</td><td class="n">${v.p_holm < 0.001 ? "&lt;0.001" : v.p_holm.toFixed(3)}</td></tr>`).join("")}</tbody></table></div>` : "");
 })();
 
 /* ---------- Fair test ---------- */
@@ -819,7 +893,8 @@ $("checks").innerHTML = [
   ["We count the tries", "The test harness counts every call to the problem and records the best value itself. A program cannot claim a better result than it found, or take more than its 10,000 tries."],
   ["Unseen test problems", `While writing, the models only saw versions 1 to 3 of each problem. Every score on this page comes from versions ${D.settings.instances[0]} to ${D.settings.instances.at(-1)}, which were held back.`],
   ["Code is checked first", `Before any program runs, an audit rejects forbidden imports and tricks such as reading the answer from the problem object. It rejected ${errs.policy} of ${totalCalls} programs. Another ${errs.syntax + errs.runtime + errs.timeout} failed on their own: ${errs.syntax} were not valid Python, ${errs.runtime} crashed and ${errs.timeout} ran too long.`],
-  ["Nothing out of bounds", `In the test phase we re-checked the ${au.programs_tested} finished programs: ${au.out_of_bounds_evals} evaluations outside the allowed box and ${au.program_flags} suspicious-code flags.`],
+  ["Nothing out of bounds", `In the test phase we re-checked the ${au.programs_tested} finished programs: ${au.out_of_bounds_evals} evaluations outside the allowed box and ${au.program_flags} suspicious-code flags.` +
+    (SC && dimsList.length > 1 ? ` The ${dimsList.slice(1).join("-D and ")}-D runs added ${dimsList.slice(1).reduce((s, d) => s + SC.dims[d].out_of_bounds_evals, 0)} more evaluations outside the box and ${dimsList.slice(1).reduce((s, d) => s + SC.dims[d].program_flags, 0)} more flags.` : "")],
 ].map(([b, p]) => `<div class="check"><b>${b}</b><p>${p}</p></div>`).join("");
 })();
 </script>
