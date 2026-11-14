@@ -1,4 +1,4 @@
-"""Two-minute end-to-end demo of AlgoGenesis.
+"""End-to-end demo of MetaMind (about three minutes).
 
     .venv/Scripts/python scripts/demo.py            # real LLM calls if CEREBRAS_API_KEY is set
     .venv/Scripts/python scripts/demo.py --fake     # offline: the "LLM" returns the PSO baseline

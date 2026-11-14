@@ -1,4 +1,4 @@
-# AlgoGenesis
+# MetaMind
 
 LLM-guided evolutionary discovery of metaheuristic optimization algorithms.
 
